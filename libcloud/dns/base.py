@@ -143,9 +143,10 @@ class Record(object):
         return record_id
 
     def __repr__(self):
+        zone = self.zone.domain if self.zone.domain else self.zone.id
         return ('<Record: zone=%s, name=%s, type=%s, data=%s, provider=%s, '
                 'ttl=%s ...>' %
-                (self.zone.id, self.name, self.type, self.data,
+                (zone, self.name, self.type, self.data,
                  self.driver.name, self.ttl))
 
 
@@ -284,7 +285,7 @@ class DNSDriver(BaseDriver):
 
     def update_zone(self, zone, domain, type='master', ttl=None, extra=None):
         """
-        Update en existing zone.
+        Update an existing zone.
 
         :param zone: Zone to update.
         :type  zone: :class:`Zone`

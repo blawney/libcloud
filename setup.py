@@ -28,8 +28,9 @@ try:
 except ImportError:
     has_epydoc = False
 
-import libcloud.utils
-from libcloud.utils.dist import get_packages, get_data_files
+
+import libcloud.utils  # NOQA
+from libcloud.utils.dist import get_packages, get_data_files  # NOQA
 
 libcloud.utils.SHOW_DEPRECATION_WARNING = False
 
@@ -48,15 +49,19 @@ HTML_VIEWSOURCE_BASE = 'https://svn.apache.org/viewvc/libcloud/trunk'
 PROJECT_BASE_DIR = 'http://libcloud.apache.org'
 TEST_PATHS = ['libcloud/test', 'libcloud/test/common', 'libcloud/test/compute',
               'libcloud/test/storage', 'libcloud/test/loadbalancer',
-              'libcloud/test/dns']
+              'libcloud/test/dns', 'libcloud/test/container',
+              'libcloud/test/backup']
 DOC_TEST_MODULES = ['libcloud.compute.drivers.dummy',
                     'libcloud.storage.drivers.dummy',
-                    'libcloud.dns.drivers.dummy']
+                    'libcloud.dns.drivers.dummy',
+                    'libcloud.container.drivers.dummy',
+                    'libcloud.backup.drivers.dummy']
 
-SUPPORTED_VERSIONS = ['2.5', '2.6', '2.7', 'PyPy', '3.x']
+SUPPORTED_VERSIONS = ['2.6', '2.7', 'PyPy', '3.x']
 
 TEST_REQUIREMENTS = [
-    'mock'
+    'mock',
+    'requests'
 ]
 
 if PY2_pre_279 or PY3_pre_32:
@@ -97,6 +102,8 @@ def forbid_publish():
 class TestCommand(Command):
     description = "run test suite"
     user_options = []
+    unittest_TestLoader = TestLoader
+    unittest_TextTestRunner = TextTestRunner
 
     def initialize_options(self):
         THIS_DIR = os.path.abspath(os.path.split(__file__)[0])
@@ -121,8 +128,9 @@ class TestCommand(Command):
 
         if unittest2_required:
             try:
-                import unittest2
-                unittest2
+                from unittest2 import TextTestRunner, TestLoader
+                self.unittest_TestLoader = TestLoader
+                self.unittest_TextTestRunner = TextTestRunner
             except ImportError:
                 print('Python version: %s' % (sys.version))
                 print('Missing "unittest2" library. unittest2 is library is '
@@ -188,12 +196,12 @@ class TestCommand(Command):
                                                                  str(e)))
                 raise e
 
-        tests = TestLoader().loadTestsFromNames(testfiles)
+        tests = self.unittest_TestLoader().loadTestsFromNames(testfiles)
 
         for test_module in DOC_TEST_MODULES:
             tests.addTests(doctest.DocTestSuite(test_module))
 
-        t = TextTestRunner(verbosity=2)
+        t = self.unittest_TextTestRunner(verbosity=2)
         res = t.run(tests)
         return not res.wasSuccessful()
 
@@ -247,7 +255,7 @@ class CoverageCommand(Command):
 
 forbid_publish()
 
-install_requires = []
+install_requires = ['requests']
 if PY2_pre_26:
     install_requires.extend(['ssl', 'simplejson'])
 
@@ -277,7 +285,7 @@ setup(
     },
     zip_safe=False,
     classifiers=[
-        'Development Status :: 4 - Beta',
+        'Development Status :: 5 - Production/Stable',
         'Environment :: Console',
         'Intended Audience :: Developers',
         'Intended Audience :: System Administrators',
@@ -285,16 +293,13 @@ setup(
         'Operating System :: OS Independent',
         'Programming Language :: Python',
         'Topic :: Software Development :: Libraries :: Python Modules',
-        'Programming Language :: Python :: 2.5',
         'Programming Language :: Python :: 2.6',
         'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.0',
-        'Programming Language :: Python :: 3.1',
-        'Programming Language :: Python :: 3.2',
         'Programming Language :: Python :: 3.3',
         'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: 3.5',
-        'Programming Language :: Python :: Implementation :: CPython'
+        'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: Implementation :: CPython',
         'Programming Language :: Python :: Implementation :: PyPy']
     )

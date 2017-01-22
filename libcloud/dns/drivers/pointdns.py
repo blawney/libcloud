@@ -11,7 +11,7 @@
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
-# limitations under the Licenseself.
+# limitations under the License.
 """
 Point DNS Driver
 """
@@ -310,7 +310,7 @@ class PointDNSDriver(DNSDriver):
 
     def update_zone(self, zone, domain, type='master', ttl=None, extra=None):
         """
-        Update en existing zone.
+        Update an existing zone.
 
         :param zone: Zone to update.
         :type  zone: :class:`Zone`

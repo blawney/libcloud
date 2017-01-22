@@ -1,5 +1,8 @@
-Apache Libcloud - a unified interface into the cloud
+Apache Libcloud - a unified interface for the cloud
 ====================================================
+
+.. image:: https://img.shields.io/badge/docs-latest-brightgreen.svg?style=flat
+    :target: https://libcloud.readthedocs.org
 
 .. image:: https://img.shields.io/pypi/v/apache-libcloud.svg
     :target: https://pypi.python.org/pypi/apache-libcloud/
@@ -22,6 +25,12 @@ Apache Libcloud - a unified interface into the cloud
 .. image:: https://img.shields.io/irc/%23libcloud.png
         :target: http://webchat.freenode.net/?channels=libcloud
 
+.. image:: https://bestpractices.coreinfrastructure.org/projects/152/badge
+        :target: https://bestpractices.coreinfrastructure.org/projects/152
+
+.. image:: https://coveralls.io/repos/github/apache/libcloud/badge.svg?branch=trunk
+        :target: https://coveralls.io/github/apache/libcloud?branch=trunk
+
 Apache Libcloud is a Python library which hides differences between different
 cloud provider APIs and allows you to manage different cloud resources
 through a unified and easy to use API.
@@ -34,6 +43,8 @@ Resources you can manage with Libcloud are divided into the following categories
   CloudFiles (``libcloud.storage.*``)
 * **Load Balancers** - Load Balancers as a Service, LBaaS (``libcloud.loadbalancer.*``)
 * **DNS** - DNS as a Service, DNSaaS (``libcloud.dns.*``)
+* **Container** - Container virtualization services (``libcloud.container.*``)
+
 
 Apache Libcloud is an Apache project, see <http://libcloud.apache.org> for
 more information.

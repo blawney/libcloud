@@ -818,7 +818,7 @@ class CloudStackNetworkACL(object):
         :type       id ``int``
 
         :param      protocol: the protocol for the ACL rule. Valid values are
-                    TCP/UDP/ICMP/ALL or valid protocol number
+                               TCP/UDP/ICMP/ALL or valid protocol number
         :type       protocol: ``string``
 
         :param      acl_id: Name of the network ACL List
@@ -837,7 +837,8 @@ class CloudStackNetworkACL(object):
         :type       end_port: ``str``
 
         :param      traffic_type: the traffic type for the ACL,can be Ingress
-                    or Egress, defaulted to Ingress if not specified
+                                  or Egress, defaulted to Ingress if not
+                                  specified
         :type       traffic_type: ``str``
 
         :rtype: :class:`CloudStackNetworkACL`
@@ -1234,6 +1235,7 @@ class CloudStackNodeDriver(CloudStackDriverMixIn, NodeDriver):
     NODE_STATE_MAP = {
         'Running': NodeState.RUNNING,
         'Starting': NodeState.REBOOTING,
+        'Migrating': NodeState.MIGRATING,
         'Stopped': NodeState.STOPPED,
         'Stopping': NodeState.PENDING,
         'Destroyed': NodeState.TERMINATED,
@@ -1250,7 +1252,8 @@ class CloudStackNodeDriver(CloudStackDriverMixIn, NodeDriver):
         'Allocated': StorageVolumeState.AVAILABLE,
         'Ready': StorageVolumeState.AVAILABLE,
         'Snapshotting': StorageVolumeState.BACKUP,
-        'UploadError': StorageVolumeState.ERROR
+        'UploadError': StorageVolumeState.ERROR,
+        'Migrating': StorageVolumeState.MIGRATING
     }
 
     def __init__(self, key, secret=None, secure=True, host=None,
@@ -1347,7 +1350,7 @@ class CloudStackNodeDriver(CloudStackDriverMixIn, NodeDriver):
 
         return locations
 
-    def list_nodes(self, project=None):
+    def list_nodes(self, project=None, location=None):
         """
         @inherits: :class:`NodeDriver.list_nodes`
 
@@ -1355,12 +1358,21 @@ class CloudStackNodeDriver(CloudStackDriverMixIn, NodeDriver):
                              the defined project.
         :type       project: :class:`.CloudStackProject`
 
+        :keyword    location: Limit nodes returned to those in the defined
+                              location.
+        :type       location: :class:`.NodeLocation`
+
         :rtype: ``list`` of :class:`CloudStackNode`
         """
 
         args = {}
+
         if project:
             args['projectid'] = project.id
+
+        if location is not None:
+            args['zoneid'] = location.id
+
         vms = self._sync_request('listVirtualMachines', params=args)
         addrs = self._sync_request('listPublicIpAddresses', params=args)
         port_forwarding_rules = self._sync_request('listPortForwardingRules')
@@ -1623,7 +1635,7 @@ class CloudStackNodeDriver(CloudStackDriverMixIn, NodeDriver):
             server_params['keypair'] = ex_key_name
 
         if ex_user_data:
-            ex_user_data = base64.b64encode(b(ex_user_data).decode('ascii'))
+            ex_user_data = base64.b64encode(b(ex_user_data)).decode('ascii')
             server_params['userdata'] = ex_user_data
 
         if ex_security_groups:
@@ -2101,17 +2113,28 @@ class CloudStackNodeDriver(CloudStackDriverMixIn, NodeDriver):
 
         return projects
 
-    def create_volume(self, size, name, location=None, snapshot=None):
+    def create_volume(self, size, name, location=None, snapshot=None,
+                      ex_volume_type=None):
         """
         Creates a data volume
         Defaults to the first location
         """
-        for diskOffering in self.ex_list_disk_offerings():
-            if diskOffering.size == size or diskOffering.customizable:
-                break
+        if ex_volume_type is None:
+            for diskOffering in self.ex_list_disk_offerings():
+                if diskOffering.size == size or diskOffering.customizable:
+                    break
+            else:
+                raise LibcloudError(
+                    'Disk offering with size=%s not found' % size)
         else:
-            raise LibcloudError(
-                'Disk offering with size=%s not found' % size)
+            for diskOffering in self.ex_list_disk_offerings():
+                if diskOffering.name == ex_volume_type:
+                    if not diskOffering.customizable:
+                        size = diskOffering.size
+                    break
+            else:
+                raise LibcloudError(
+                    'Volume type with name=%s not found' % ex_volume_type)
 
         if location is None:
             location = self.list_locations()[0]
@@ -2507,7 +2530,7 @@ class CloudStackNodeDriver(CloudStackDriverMixIn, NodeDriver):
                                 icmp_code=None, icmp_type=None,
                                 start_port=None, end_port=None):
         """
-        Creates a Firewalle Rule
+        Creates a Firewall Rule
 
         :param      address: External IP address
         :type       address: :class:`CloudStackAddress`
@@ -2560,7 +2583,7 @@ class CloudStackNodeDriver(CloudStackDriverMixIn, NodeDriver):
 
     def ex_delete_firewall_rule(self, firewall_rule):
         """
-        Remove a Firewall rule.
+        Remove a Firewall Rule.
 
         :param firewall_rule: Firewall rule which should be used
         :type  firewall_rule: :class:`CloudStackFirewallRule`
@@ -2574,7 +2597,7 @@ class CloudStackNodeDriver(CloudStackDriverMixIn, NodeDriver):
 
     def ex_list_egress_firewall_rules(self):
         """
-        Lists all agress Firewall Rules
+        Lists all egress Firewall Rules
 
         :rtype: ``list`` of :class:`CloudStackEgressFirewallRule`
         """
@@ -2597,9 +2620,9 @@ class CloudStackNodeDriver(CloudStackDriverMixIn, NodeDriver):
                                        icmp_code=None, icmp_type=None,
                                        start_port=None, end_port=None):
         """
-        Creates a Firewalle Rule
+        Creates a Firewall Rule
 
-        :param      network_id: the id network network for the egress firwall
+        :param      network_id: the id network network for the egress firewall
                     services
         :type       network_id: ``str``
 
@@ -2709,7 +2732,7 @@ class CloudStackNodeDriver(CloudStackDriverMixIn, NodeDriver):
                             Default value is false
         :type      list_all: ``bool``
 
-        :param     network_id: list port forwarding rules for ceratin network
+        :param     network_id: list port forwarding rules for certain network
         :type      network_id: ``string``
 
         :param     page: The page to list the keypairs from
@@ -4700,10 +4723,9 @@ class CloudStackNodeDriver(CloudStackDriverMixIn, NodeDriver):
         tags = {}
 
         for tag in tag_set:
-            for key, value in tag.iteritems():
-                key = tag['key']
-                value = tag['value']
-                tags[key] = value
+            key = tag['key']
+            value = tag['value']
+            tags[key] = value
 
         return tags
 
